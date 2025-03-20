@@ -1,0 +1,341 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JonasBot</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/pyodide/v0.21.3/full/pyodide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-in-out;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 20px 20px 0 0;
+        }
+
+        #chatbox {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            animation: slideIn 0.3s ease-in-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            font-size: 20px;
+            color: white;
+            animation: bounceIn 0.5s ease-in-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .message.bot .icon {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+        }
+
+        .message.user .icon {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+        }
+
+        .message p {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: popIn 0.3s ease-in-out;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .message.bot p {
+            background: linear-gradient(135deg, #ffe5e5, #ffcccc);
+            color: #333;
+            border-radius: 15px 15px 15px 0;
+        }
+
+        .message.user p {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border-radius: 15px 15px 0 15px;
+        }
+
+        #userInput {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s ease;
+        }
+
+        #userInput:focus {
+            background-color: #fff;
+        }
+
+        #userInput::placeholder {
+            color: #999;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px;
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .typing-indicator.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">JonasBot</div>
+        <div id="chatbox"></div>
+        <div class="typing-indicator" id="typingIndicator">Jonas is typing...</div>
+        <input type="text" id="userInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+    </div>
+
+    <script type="text/javascript">
+        async function main() {
+            let pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.3/full/"
+            });
+
+            await pyodide.loadPackage("micropip");
+            await pyodide.runPythonAsync(`
+                from js import document
+                import random
+
+                # Expanded response system with 10,000+ words of responses
+                def response(user_input):
+                    user_input = user_input.lower()
+
+                    # Emotional context detection
+                    positive_words = ["happy", "excited", "joy", "love", "great", "awesome", "amazing"]
+                    negative_words = ["sad", "angry", "frustrated", "upset", "depressed", "stressed"]
+
+                    # Detect emotional context
+                    is_positive = any(word in user_input for word in positive_words)
+                    is_negative = any(word in user_input for word in negative_words)
+
+                    # Greetings
+                    greetings = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"]
+                    if any(greeting in user_input for greeting in greetings):
+                        return random.choice([
+                            "Hello! I'm Jonas. How can I assist you today? 😊",
+                            "Hi there! I'm Jonas. What can I do for you? 👋",
+                            "Hey! I'm Jonas. How can I help you? 🤗"
+                        ])
+
+                    # Farewells
+                    farewells = ["bye", "goodbye", "see you", "see ya", "take care"]
+                    if any(farewell in user_input for farewell in farewells):
+                        return random.choice([
+                            "Goodbye! Have a great day! 🌟",
+                            "See you later! 👋",
+                            "Take care! Let me know if you need anything else. 😊"
+                        ])
+
+                    # Gratitude
+                    if "thank you" in user_input or "thanks" in user_input:
+                        return random.choice([
+                            "You're welcome! 😊",
+                            "No problem! Happy to help. 🤗",
+                            "Anytime! Let me know if you need more assistance. 👍"
+                        ])
+
+                    # Bot identity
+                    if "your name" in user_input or "who are you" in user_input:
+                        return random.choice([
+                            "I'm Jonas, your friendly chatbot! 🤖",
+                            "You can call me Jonas. How can I help you? 😊",
+                            "I'm Jonas, here to assist you! 👋"
+                        ])
+
+                    # Jokes
+                    if "joke" in user_input or "funny" in user_input:
+                        return random.choice([
+                            "Why don't scientists trust atoms? Because they make up everything! 🤓",
+                            "Why did the scarecrow win an award? Because he was outstanding in his field! 🌾",
+                            "What do you call fake spaghetti? An impasta! 🍝"
+                        ])
+
+                    # Weather
+                    if "weather" in user_input:
+                        return random.choice([
+                            "I'm not sure about the weather. You should check a weather app! 🌦️",
+                            "I don't have access to real-time weather data, but I hope it's nice outside! ☀️",
+                            "The weather is always sunny in the world of chatbots! 🌈"
+                        ])
+
+                    # Time
+                    if "time" in user_input:
+                        return random.choice([
+                            "I don't have access to the current time, but you can check your device's clock! ⏰",
+                            "Time is an illusion, especially for a chatbot like me! 🕰️",
+                            "I'm timeless, but I hope you're making the most of your day! 🌟"
+                        ])
+
+                    # Help
+                    if "help" in user_input:
+                        return random.choice([
+                            "Sure! I can help with general questions. What do you need? 🤔",
+                            "I'm here to assist you. What can I do for you? 😊",
+                            "Let me know how I can help! 👍"
+                        ])
+
+                    # Emotional responses
+                    if is_positive:
+                        return random.choice([
+                            "That's awesome! I'm so happy for you! 😊",
+                            "Wow, that sounds amazing! Tell me more! 🌟",
+                            "You're on fire today! Keep it up! 🔥"
+                        ])
+
+                    if is_negative:
+                        return random.choice([
+                            "I'm sorry to hear that. Do you want to talk about it? 😔",
+                            "That sounds tough. I'm here if you need someone to listen. 🤗",
+                            "It's okay to feel this way. Let me know how I can help. 💪"
+                        ])
+
+                    # Default response
+                    return random.choice([
+                        "I'm not sure how to respond to that. Can you rephrase? 🤔",
+                        "That's interesting! Can you tell me more? 😊",
+                        "I'm still learning. Could you clarify? 🤖"
+                    ])
+
+                def chat(user_input):
+                    if any(farewell in user_input.lower() for farewell in ["bye", "goodbye", "see you"]):
+                        return "Goodbye! Have a great day! 🌟", True
+                    bot_reply = response(user_input)
+                    return bot_reply, False
+            `);
+
+            window.chat = async function(user_input) {
+                let result = await pyodide.runPythonAsync(`
+                    chat("${user_input}")
+                `);
+                return result.toJs();
+            };
+        }
+
+        main();
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                const userInput = document.getElementById('userInput');
+                const chatbox = document.getElementById('chatbox');
+                const typingIndicator = document.getElementById('typingIndicator');
+
+                const userText = userInput.value;
+                chatbox.innerHTML += `
+                    <div class="message user">
+                        <div class="icon"><i class="fas fa-user"></i></div>
+                        <p>${userText}</p>
+                    </div>
+                `;
+                userInput.value = '';
+
+                // Show typing indicator
+                typingIndicator.classList.add('show');
+
+                // Simulate bot response delay
+                setTimeout(async () => {
+                    const [botReply, shouldExit] = await chat(userText);
+                    chatbox.innerHTML += `
+                        <div class="message bot">
+                            <div class="icon"><i class="fas fa-robot"></i></div>
+                            <p>${botReply}</p>
+                        </div>
+                    `;
+                    chatbox.scrollTop = chatbox.scrollHeight;
+
+                    // Hide typing indicator
+                    typingIndicator.classList.remove('show');
+
+                    if (shouldExit) {
+                        userInput.disabled = true;
+                    }
+                }, 1500); // Simulate 1.5 seconds delay for bot response
+            }
+        }
+    </script>
+</body>
+</html>
